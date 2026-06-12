@@ -1,0 +1,33 @@
+{
+  "manifest_version": 3,
+  "name": "Threads Enhancer",
+  "version": "1.0.0",
+  "author": "Andrii Shevchuk-Yuhanets",
+  "description": "Adds 'Open in new tab', 'Copy post URL', 'Back to Top' to Threads.",
+  "permissions": ["storage"],
+  "action": {
+    "default_icon": {
+      "16": "icons/16x16.png",
+      "32": "icons/32x32.png",
+      "48": "icons/48x48.png",
+      "128": "icons/128x128.png"
+    },
+    "default_popup": "popup.html"
+  },
+
+  "content_scripts": [
+    {
+      "matches": ["*://*.threads.net/*", "*://*.threads.com/*"],
+      "js": ["content.js"],
+      "css": ["content.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "icons": {
+    "16": "icons/16x16.png",
+    "32": "icons/32x32.png",
+    "48": "icons/48x48.png",
+    "64": "icons/64x64.png",
+    "128": "icons/128x128.png"
+  }
+}

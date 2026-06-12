@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <link rel="stylesheet" href="popup.css">
+</head>
+<body>
+  <div class="popup-container">
+    <div class="header">
+      <img src="icons/128x128.png" alt="Logo" class="logo">
+      <h2>Threads Enhancer</h2>
+    </div>
+    
+    <p class="subtitle">Customize active post actions:</p>
+    
+    <div class="settings-list">
+      <div class="setting-item">
+        <div class="setting-info">
+          <span class="setting-title">Open in New Tab</span>
+          <span class="setting-desc">Show button to open post in a new tab</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="toggle-open-tab" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+      
+      <div class="setting-item">
+        <div class="setting-info">
+          <span class="setting-title">Copy Post Link</span>
+          <span class="setting-desc">Show button to copy post URL to clipboard</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="toggle-copy-link" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+
+
+      <div class="setting-item">
+        <div class="setting-info">
+          <span class="setting-title">Back to Top</span>
+          <span class="setting-desc">Show floating button to scroll back to top</span>
+        </div>
+        <label class="switch">
+          <input type="checkbox" id="toggle-back-to-top" checked>
+          <span class="slider"></span>
+        </label>
+      </div>
+
+      <div class="setting-item">
+        <div class="setting-info">
+          <span class="setting-title">Action Order</span>
+          <span class="setting-desc">Choose which action icon is shown first</span>
+        </div>
+        <select id="select-order" class="select-dropdown">
+          <option value="open-first">Open in new tab first</option>
+          <option value="copy-first">Copy post link first</option>
+        </select>
+      </div>
+
+      <div class="setting-item">
+        <div class="setting-info">
+          <span class="setting-title">Theme</span>
+          <span class="setting-desc">Choose appearance for settings panel</span>
+        </div>
+        <select id="select-theme" class="select-dropdown">
+          <option value="system">System</option>
+          <option value="light">Light</option>
+          <option value="dark">Dark</option>
+        </select>
+      </div>
+    </div>
+    
+    <div class="footer">
+      <span>Settings save automatically</span>
+    </div>
+  </div>
+  <script src="popup.js"></script>
+</body>
+</html>
