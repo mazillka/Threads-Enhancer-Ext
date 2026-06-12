@@ -148,7 +148,9 @@
     openBtn.setAttribute('data-action-type', 'open-tab');
     openBtn.style.display = settings.showOpenTab ? 'inline-flex' : 'none';
     openBtn.addEventListener('click', (e) => {
+      e.preventDefault();
       e.stopPropagation();
+      window.open(postUrl, '_blank');
     });
     openBtn.innerHTML = `
       <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -229,6 +231,42 @@
     }
 
     const actionBars = candidates.filter(bar => {
+      let isReplyComposer = false;
+      
+      // Method 1: Check SVG labels/titles in this bar
+      const svgElements = bar.querySelectorAll('svg');
+      for (const svg of svgElements) {
+        const label = svg.getAttribute('aria-label') || '';
+        const titleEl = svg.querySelector('title');
+        const title = titleEl ? titleEl.textContent : '';
+        const combined = (label + ' ' + title).toLowerCase();
+        if (
+          combined.includes('media') || 
+          combined.includes('gif') || 
+          combined.includes('composer') || 
+          combined.includes('poll') || 
+          combined.includes('voice') ||
+          combined.includes('attach')
+        ) {
+          isReplyComposer = true;
+          break;
+        }
+      }
+
+      // Method 2: Traverse up up to 5 levels to find text inputs
+      if (!isReplyComposer) {
+        let p = bar;
+        for (let i = 0; i < 5 && p; i++) {
+          if (p.querySelector('[contenteditable="true"], textarea, [role="textbox"], [placeholder], [aria-placeholder]')) {
+            isReplyComposer = true;
+            break;
+          }
+          p = p.parentElement;
+        }
+      }
+
+      if (isReplyComposer) return false;
+
       return !candidates.some(otherBar => otherBar !== bar && bar.contains(otherBar));
     });
 

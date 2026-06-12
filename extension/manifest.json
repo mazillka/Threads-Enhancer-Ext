@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Threads Enhancer",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "author": "Andrii Shevchuk-Yuhanets",
   "description": "Adds 'Open in new tab', 'Copy post URL', 'Back to Top' to Threads.",
   "permissions": ["storage"],
