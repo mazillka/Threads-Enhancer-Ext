@@ -11,65 +11,164 @@
       <h2>Threads Enhancer</h2>
     </div>
     
-    <p class="subtitle">Customize active post actions:</p>
-    
-    <div class="settings-list">
-      <div class="setting-item">
-        <div class="setting-info">
-          <span class="setting-title">Open in New Tab</span>
-          <span class="setting-desc">Show button to open post in a new tab</span>
-        </div>
-        <label class="switch">
-          <input type="checkbox" id="toggle-open-tab" checked>
-          <span class="slider"></span>
-        </label>
+    <div class="tabs-nav">
+      <button class="tab-btn active" data-tab="pinned">
+        <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <g transform="rotate(45 12 12)">
+            <line x1="12" y1="17" x2="12" y2="22"></line>
+            <path d="M5 17h14v-1.76a2 2 0 0 0-.44-1.24l-2.78-3.5A2 2 0 0 1 15 9.26V5a3 3 0 0 0-6 0v4.26c0 .42-.13.84-.38 1.18l-2.78 3.5a2 2 0 0 0-.44 1.24V17z"></path>
+          </g>
+        </svg>
+        Pinned <span id="pinned-tab-badge" class="tab-badge">0</span>
+      </button>
+      <button class="tab-btn" data-tab="settings">
+        <svg class="tab-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <circle cx="12" cy="12" r="3"></circle>
+          <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 1 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 1 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 1 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 1 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+        </svg>
+        Settings
+      </button>
+    </div>
+
+    <!-- Pinned Posts Tab Panel -->
+    <div id="tab-pinned" class="tab-content active">
+      <div id="pinned-list" class="pinned-list">
+        <!-- Pinned posts will be injected here dynamically -->
       </div>
-      
-      <div class="setting-item">
-        <div class="setting-info">
-          <span class="setting-title">Copy Post Link</span>
-          <span class="setting-desc">Show button to copy post URL to clipboard</span>
+    </div>
+
+    <!-- Settings Tab Panel -->
+    <div id="tab-settings" class="tab-content">
+
+      <!-- Post Actions Section -->
+      <div class="settings-section">
+        <div class="settings-section-header">
+          <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="1"/><circle cx="19" cy="12" r="1"/><circle cx="5" cy="12" r="1"/>
+          </svg>
+          <span>Post Actions</span>
         </div>
-        <label class="switch">
-          <input type="checkbox" id="toggle-copy-link" checked>
-          <span class="slider"></span>
-        </label>
+        <div class="settings-card">
+          <div class="setting-row">
+            <div class="setting-info">
+              <span class="setting-title">Open in New Tab</span>
+              <span class="setting-desc">Show button to open post in a new tab</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="toggle-open-tab" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="setting-divider"></div>
+          <div class="setting-row">
+            <div class="setting-info">
+              <span class="setting-title">Copy Post Link</span>
+              <span class="setting-desc">Show button to copy post URL to clipboard</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="toggle-copy-link" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+          <div class="setting-divider"></div>
+          <div class="setting-row">
+            <div class="setting-info">
+              <span class="setting-title">Pin Post Button</span>
+              <span class="setting-desc">Show button to pin post to the extension</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="toggle-pin-btn" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
       </div>
 
-
-      <div class="setting-item">
-        <div class="setting-info">
-          <span class="setting-title">Back to Top</span>
-          <span class="setting-desc">Show floating button to scroll back to top</span>
+      <!-- General Section -->
+      <div class="settings-section">
+        <div class="settings-section-header">
+          <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
+          </svg>
+          <span>General</span>
         </div>
-        <label class="switch">
-          <input type="checkbox" id="toggle-back-to-top" checked>
-          <span class="slider"></span>
-        </label>
+        <div class="settings-card">
+          <div class="setting-row">
+            <div class="setting-info">
+              <span class="setting-title">Back to Top</span>
+              <span class="setting-desc">Show floating button to scroll back to top</span>
+            </div>
+            <label class="switch">
+              <input type="checkbox" id="toggle-back-to-top" checked>
+              <span class="slider"></span>
+            </label>
+          </div>
+        </div>
       </div>
 
-      <div class="setting-item">
-        <div class="setting-info">
-          <span class="setting-title">Action Order</span>
-          <span class="setting-desc">Choose which action icon is shown first</span>
+      <!-- Action Order Section -->
+      <div class="settings-section">
+        <div class="settings-section-header">
+          <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="4" y1="9" x2="20" y2="9"/><line x1="4" y1="15" x2="20" y2="15"/><line x1="10" y1="3" x2="8" y2="21"/><line x1="16" y1="3" x2="14" y2="21"/>
+          </svg>
+          <span>Action Order</span>
         </div>
-        <select id="select-order" class="select-dropdown">
-          <option value="open-first">Open in new tab first</option>
-          <option value="copy-first">Copy post link first</option>
-        </select>
+        <p class="section-hint">Drag to reorder action buttons on posts</p>
+        <div id="sortable-order" class="sortable-list">
+          <div class="sortable-item" draggable="true" data-key="open">
+            <span class="sortable-grip">
+              <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>
+            </span>
+            <span class="sortable-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+            </span>
+            <span class="sortable-label">Open in New Tab</span>
+          </div>
+          <div class="sortable-item" draggable="true" data-key="copy">
+            <span class="sortable-grip">
+              <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>
+            </span>
+            <span class="sortable-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></svg>
+            </span>
+            <span class="sortable-label">Copy Post Link</span>
+          </div>
+          <div class="sortable-item" draggable="true" data-key="pin">
+            <span class="sortable-grip">
+              <svg viewBox="0 0 24 24" fill="currentColor"><circle cx="9" cy="6" r="1.5"/><circle cx="15" cy="6" r="1.5"/><circle cx="9" cy="12" r="1.5"/><circle cx="15" cy="12" r="1.5"/><circle cx="9" cy="18" r="1.5"/><circle cx="15" cy="18" r="1.5"/></svg>
+            </span>
+            <span class="sortable-icon">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><g transform="rotate(45 12 12)"><line x1="12" y1="17" x2="12" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-.44-1.24l-2.78-3.5A2 2 0 0 1 15 9.26V5a3 3 0 0 0-6 0v4.26c0 .42-.13.84-.38 1.18l-2.78 3.5a2 2 0 0 0-.44 1.24V17z"/></g></svg>
+            </span>
+            <span class="sortable-label">Pin Post</span>
+          </div>
+        </div>
       </div>
 
-      <div class="setting-item">
-        <div class="setting-info">
-          <span class="setting-title">Theme</span>
-          <span class="setting-desc">Choose appearance for settings panel</span>
+      <!-- Appearance Section -->
+      <div class="settings-section">
+        <div class="settings-section-header">
+          <svg class="section-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="5"/><line x1="12" y1="1" x2="12" y2="3"/><line x1="12" y1="21" x2="12" y2="23"/><line x1="4.22" y1="4.22" x2="5.64" y2="5.64"/><line x1="18.36" y1="18.36" x2="19.78" y2="19.78"/><line x1="1" y1="12" x2="3" y2="12"/><line x1="21" y1="12" x2="23" y2="12"/><line x1="4.22" y1="19.78" x2="5.64" y2="18.36"/><line x1="18.36" y1="5.64" x2="19.78" y2="4.22"/>
+          </svg>
+          <span>Appearance</span>
         </div>
-        <select id="select-theme" class="select-dropdown">
-          <option value="system">System</option>
-          <option value="light">Light</option>
-          <option value="dark">Dark</option>
-        </select>
+        <div class="settings-card">
+          <div class="setting-row">
+            <div class="setting-info">
+              <span class="setting-title">Theme</span>
+              <span class="setting-desc">Choose appearance for extension panel</span>
+            </div>
+            <select id="select-theme" class="select-dropdown">
+              <option value="system">System</option>
+              <option value="light">Light</option>
+              <option value="dark">Dark</option>
+            </select>
+          </div>
+        </div>
       </div>
+
     </div>
     
     <div class="footer">

@@ -10,18 +10,29 @@
   let settings = {
     showOpenTab: true,
     showCopyLink: true,
-    actionOrder: 'open-first',
+    showPinBtn: true,
+    actionOrder: 'open-copy-pin',
     showBackToTop: true
   };
+  let pinnedPosts = [];
 
   // Load configuration from storage
   chrome.storage.sync.get({
     showOpenTab: true,
     showCopyLink: true,
-    actionOrder: 'open-first',
-    showBackToTop: true
+    showPinBtn: true,
+    actionOrder: 'open-copy-pin',
+    showBackToTop: true,
+    pinnedPosts: []
   }, (items) => {
-    settings = items;
+    settings = {
+      showOpenTab: items.showOpenTab,
+      showCopyLink: items.showCopyLink,
+      showPinBtn: items.showPinBtn,
+      actionOrder: items.actionOrder,
+      showBackToTop: items.showBackToTop
+    };
+    pinnedPosts = items.pinnedPosts;
     updateButtonsVisibility();
   });
 
@@ -34,25 +45,41 @@
       if (changes.showCopyLink !== undefined) {
         settings.showCopyLink = changes.showCopyLink.newValue;
       }
-
+      if (changes.showPinBtn !== undefined) {
+        settings.showPinBtn = changes.showPinBtn.newValue;
+      }
       if (changes.actionOrder !== undefined) {
         settings.actionOrder = changes.actionOrder.newValue;
       }
       if (changes.showBackToTop !== undefined) {
         settings.showBackToTop = changes.showBackToTop.newValue;
       }
+      if (changes.pinnedPosts !== undefined) {
+        pinnedPosts = changes.pinnedPosts.newValue;
+        updatePinButtonsState();
+      }
       updateButtonsVisibility();
     }
   });
 
+  // Map order key segments to action-type data attributes
+  function getOrderedButtons(group) {
+    const map = {
+      'open': group.querySelector('[data-action-type="open-tab"]'),
+      'copy': group.querySelector('[data-action-type="copy-link"]'),
+      'pin': group.querySelector('[data-action-type="pin-post"]')
+    };
+    const parts = settings.actionOrder.split('-');
+    return parts.map(key => map[key]).filter(Boolean);
+  }
+
   // Dynamically update the visibility and order of all injected buttons
   function updateButtonsVisibility() {
-    const openFirst = settings.actionOrder === 'open-first';
-
     // Update action bar buttons
     document.querySelectorAll('.threads-enhancer-group').forEach(group => {
       const openBtn = group.querySelector('[data-action-type="open-tab"]');
       const copyBtn = group.querySelector('[data-action-type="copy-link"]');
+      const pinBtn = group.querySelector('[data-action-type="pin-post"]');
 
       if (openBtn) {
         openBtn.style.display = settings.showOpenTab ? 'inline-flex' : 'none';
@@ -60,19 +87,13 @@
       if (copyBtn) {
         copyBtn.style.display = settings.showCopyLink ? 'inline-flex' : 'none';
       }
-
-      if (openBtn && copyBtn) {
-        if (openFirst) {
-          group.appendChild(openBtn);
-          group.appendChild(copyBtn);
-        } else {
-          group.appendChild(copyBtn);
-          group.appendChild(openBtn);
-        }
+      if (pinBtn) {
+        pinBtn.style.display = settings.showPinBtn ? 'inline-flex' : 'none';
       }
+
+      const ordered = getOrderedButtons(group);
+      ordered.forEach(btn => group.appendChild(btn));
     });
-
-
 
     // Update back-to-top button visibility
     const bttBtn = document.querySelector('.threads-enhancer-back-to-top');
@@ -84,6 +105,37 @@
         bttBtn.style.display = '';
       }
     }
+  }
+
+  // Update pin/unpin buttons visual state
+  function updatePinButtonsState() {
+    document.querySelectorAll('[data-action-type="pin-post"]').forEach(pinBtn => {
+      const postUrl = pinBtn.getAttribute('data-post-url');
+      const isPinned = pinnedPosts.some(p => p.url === postUrl);
+      pinBtn.classList.toggle('pinned', isPinned);
+
+      if (isPinned) {
+        pinBtn.setAttribute('data-tooltip', 'Unpin post');
+        pinBtn.innerHTML = `
+          <svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <g transform="rotate(45 12 12)">
+              <line x1="12" y1="17" x2="12" y2="22"></line>
+              <path d="M5 17h14v-1.76a2 2 0 0 0-.44-1.24l-2.78-3.5A2 2 0 0 1 15 9.26V5a3 3 0 0 0-6 0v4.26c0 .42-.13.84-.38 1.18l-2.78 3.5a2 2 0 0 0-.44 1.24V17z"></path>
+            </g>
+          </svg>
+        `;
+      } else {
+        pinBtn.setAttribute('data-tooltip', 'Pin post');
+        pinBtn.innerHTML = `
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <g transform="rotate(45 12 12)">
+              <line x1="12" y1="17" x2="12" y2="22"></line>
+              <path d="M5 17h14v-1.76a2 2 0 0 0-.44-1.24l-2.78-3.5A2 2 0 0 1 15 9.26V5a3 3 0 0 0-6 0v4.26c0 .42-.13.84-.38 1.18l-2.78 3.5a2 2 0 0 0-.44 1.24V17z"></path>
+            </g>
+          </svg>
+        `;
+      }
+    });
   }
 
 
@@ -128,6 +180,82 @@
     return null;
   }
 
+
+  // Helper to extract the author's username
+  function getPostAuthor(postContainer) {
+    if (!postContainer) return 'Threads User';
+    
+    // 1. Check all links in the container to find a profile link
+    const links = postContainer.querySelectorAll('a');
+    for (const link of links) {
+      const href = link.getAttribute('href');
+      if (href) {
+        // Match /username or /@username
+        const match = href.match(/^\/(@?([a-zA-Z0-9_.]+))\/?$/);
+        if (match) {
+          const username = match[2];
+          const blacklist = ['search', 'activity', 'messages', 'write', 'explore', 'terms', 'privacy', 'about', 'login', 'signup', 'media', 'posts'];
+          if (!blacklist.includes(username.toLowerCase())) {
+            return username;
+          }
+        }
+      }
+    }
+    
+    // 2. Fallback: try parsing post URLs which contain username
+    for (const link of links) {
+      const href = link.getAttribute('href');
+      if (href) {
+        const match = href.match(/\/(@?([a-zA-Z0-9_.]+))\/post\//i);
+        if (match) {
+          return match[2];
+        }
+      }
+    }
+    
+    return 'Threads User';
+  }
+
+  // Helper to extract post details for pinning
+  function getPostDetails(actionBar) {
+    const postContainer = actionBar.closest('article') || actionBar.closest('[role="article"]') || actionBar.parentElement?.parentElement?.parentElement;
+    const url = getPostUrl(actionBar);
+    const author = getPostAuthor(postContainer);
+    
+    let text = '';
+    if (postContainer) {
+      try {
+        const clone = postContainer.cloneNode(true);
+        
+        // Remove action bar, enhancers, buttons, SVGs, time tags
+        clone.querySelectorAll('.threads-enhancer-group, [role="button"], button, svg, time').forEach(el => el.remove());
+        
+        // Get the text content of the remainder
+        text = clone.textContent.replace(/\s+/g, ' ').trim();
+        
+        // Remove author from the start
+        const authorEscaped = author.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
+        text = text.replace(new RegExp(`^@?${authorEscaped}\\b`, 'i'), '').trim();
+        
+        // Clean leading dots/timestamps (e.g. "· 2h", "• 1d")
+        text = text.replace(/^[^a-zA-Z0-9]+/, '').trim();
+        text = text.replace(/^\d+[hdwmy]\b/i, '').trim();
+        text = text.replace(/^[^a-zA-Z0-9]+/, '').trim();
+        
+        if (text.length > 120) {
+          text = text.substring(0, 117) + '...';
+        }
+      } catch (e) {
+        console.error('Error parsing post text:', e);
+      }
+    }
+    
+    if (!text) {
+      text = '';
+    }
+    
+    return { url, author, text };
+  }
 
   // Inject buttons into a specific action bar container
   function injectButtons(actionBar, postUrl) {
@@ -188,14 +316,67 @@
       </svg>
     `;
 
-    // Append in chosen order
-    if (settings.actionOrder === 'open-first') {
-      group.appendChild(openBtn);
-      group.appendChild(copyBtn);
+    // 3. Pin Post button
+    const pinBtn = document.createElement('button');
+    pinBtn.className = 'threads-enhancer-btn';
+    pinBtn.type = 'button';
+    pinBtn.setAttribute('data-action-type', 'pin-post');
+    pinBtn.setAttribute('data-post-url', postUrl);
+    pinBtn.style.display = settings.showPinBtn ? 'inline-flex' : 'none';
+
+    const isPinned = pinnedPosts.some(p => p.url === postUrl);
+    pinBtn.classList.toggle('pinned', isPinned);
+
+    if (isPinned) {
+      pinBtn.setAttribute('data-tooltip', 'Unpin post');
+      pinBtn.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <g transform="rotate(45 12 12)">
+            <line x1="12" y1="17" x2="12" y2="22"></line>
+            <path d="M5 17h14v-1.76a2 2 0 0 0-.44-1.24l-2.78-3.5A2 2 0 0 1 15 9.26V5a3 3 0 0 0-6 0v4.26c0 .42-.13.84-.38 1.18l-2.78 3.5a2 2 0 0 0-.44 1.24V17z"></path>
+          </g>
+        </svg>
+      `;
     } else {
-      group.appendChild(copyBtn);
-      group.appendChild(openBtn);
+      pinBtn.setAttribute('data-tooltip', 'Pin post');
+      pinBtn.innerHTML = `
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <g transform="rotate(45 12 12)">
+            <line x1="12" y1="17" x2="12" y2="22"></line>
+            <path d="M5 17h14v-1.76a2 2 0 0 0-.44-1.24l-2.78-3.5A2 2 0 0 1 15 9.26V5a3 3 0 0 0-6 0v4.26c0 .42-.13.84-.38 1.18l-2.78 3.5a2 2 0 0 0-.44 1.24V17z"></path>
+          </g>
+        </svg>
+      `;
     }
+
+    pinBtn.addEventListener('click', (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+
+      chrome.storage.sync.get({ pinnedPosts: [] }, (items) => {
+        let currentPinned = items.pinnedPosts;
+        const exists = currentPinned.some(p => p.url === postUrl);
+        if (exists) {
+          currentPinned = currentPinned.filter(p => p.url !== postUrl);
+        } else {
+          const details = getPostDetails(actionBar);
+          currentPinned.push({
+            url: postUrl,
+            author: details.author,
+            text: details.text,
+            pinnedAt: Date.now()
+          });
+        }
+        chrome.storage.sync.set({ pinnedPosts: currentPinned });
+      });
+    });
+
+    // Append in chosen order
+    const btnMap = { 'open': openBtn, 'copy': copyBtn, 'pin': pinBtn };
+    const parts = settings.actionOrder.split('-');
+    parts.forEach(key => {
+      if (btnMap[key]) group.appendChild(btnMap[key]);
+    });
 
     actionBar.appendChild(group);
   }
