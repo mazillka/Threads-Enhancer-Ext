@@ -521,16 +521,25 @@
   }
 
   // Set up mutation observer to handle dynamically loaded content
+  // Debounce processPage so bursts of mutations (typical during scroll/
+  // infinite-load on Threads) collapse into a single full-document scan
+  // instead of one expensive scan per mutation batch.
+  let processScheduled = false;
+  function scheduleProcessPage() {
+    if (processScheduled) return;
+    processScheduled = true;
+    setTimeout(() => {
+      processScheduled = false;
+      processPage();
+    }, 150);
+  }
+
   const observer = new MutationObserver((mutations) => {
-    let shouldProcess = false;
     for (const mutation of mutations) {
       if (mutation.addedNodes.length > 0) {
-        shouldProcess = true;
+        scheduleProcessPage();
         break;
       }
-    }
-    if (shouldProcess) {
-      processPage();
     }
   });
 
@@ -540,9 +549,10 @@
     subtree: true,
   });
 
-  // Run initial scan and periodic backups
+  // Run initial scan and periodic backup (observer handles real-time updates,
+  // this just catches anything missed, e.g. attribute-only changes)
   setTimeout(processPage, 1000);
-  setInterval(processPage, 2000);
+  setInterval(processPage, 5000);
 
   // Initialize back-to-top button
   createBackToTopButton();
