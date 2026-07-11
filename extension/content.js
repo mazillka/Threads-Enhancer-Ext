@@ -173,10 +173,9 @@
       current = current.parentElement;
     }
 
-    if (/\/post\/[a-zA-Z0-9_-]+/i.test(window.location.pathname) || /\/t\/[a-zA-Z0-9_-]+/i.test(window.location.pathname)) {
-      return cleanUrl(window.location.href);
-    }
-
+    // No permalink found near this bar — do not guess from the current page
+    // URL, since that would incorrectly attribute unrelated UI (e.g. the
+    // sidebar nav) with whatever post happens to be open.
     return null;
   }
 
@@ -216,44 +215,104 @@
     return 'Threads User';
   }
 
+  // Helper to find the smallest ancestor of the action bar that contains the
+  // whole post (author link + text) without spilling into a sibling post.
+  // Threads renders no <article>/[role="article"] wrapper, so we climb
+  // parent-by-parent, tracking the first level that picks up an author
+  // profile link, and stop as soon as content size jumps sharply (a sign
+  // we've crossed into a neighboring post/reply).
+  function findPostContainer(actionBar) {
+    const explicit = actionBar.closest('article') || actionBar.closest('[role="article"]');
+    if (explicit) return explicit;
+
+    let node = actionBar.parentElement;
+    let candidate = null;
+    let candidateLen = 0;
+    for (let i = 0; i < 10 && node; i++) {
+      const len = node.textContent.length;
+      const hasProfileLink = Array.from(node.querySelectorAll('a')).some(a =>
+        /^\/(@?[a-zA-Z0-9_.]+)\/?$/.test(a.getAttribute('href') || '')
+      );
+      if (hasProfileLink && !candidate) {
+        candidate = node;
+        candidateLen = len;
+      } else if (candidate) {
+        if (len > candidateLen * 1.15) break;
+        candidate = node;
+        candidateLen = len;
+      }
+      node = node.parentElement;
+    }
+
+    return candidate || actionBar.parentElement?.parentElement?.parentElement || actionBar.parentElement;
+  }
+
   // Helper to extract post details for pinning
   function getPostDetails(actionBar) {
-    const postContainer = actionBar.closest('article') || actionBar.closest('[role="article"]') || actionBar.parentElement?.parentElement?.parentElement;
+    const postContainer = findPostContainer(actionBar);
     const url = getPostUrl(actionBar);
     const author = getPostAuthor(postContainer);
-    
+
     let text = '';
     if (postContainer) {
       try {
         const clone = postContainer.cloneNode(true);
-        
-        // Remove action bar, enhancers, buttons, SVGs, time tags
-        clone.querySelectorAll('.threads-enhancer-group, [role="button"], button, svg, time').forEach(el => el.remove());
-        
+
+        // Remove action bar, enhancers, buttons, SVGs, time tags, and any
+        // reply composer (e.g. the always-visible "Reply to X..." box that
+        // sits right below a post) that ended up inside the captured
+        // container — otherwise its placeholder text can leak into the
+        // stored description, especially for media-only posts with little
+        // real text of their own.
+        clone.querySelectorAll(
+          '.threads-enhancer-group, [role="button"], button, svg, time, ' +
+          '[contenteditable], [role="textbox"], textarea, [placeholder], [aria-placeholder]'
+        ).forEach(el => el.remove());
+
         // Get the text content of the remainder
         text = clone.textContent.replace(/\s+/g, ' ').trim();
-        
+
+        // Safety net: strip a "Reply to X..." fragment if it's rendered as
+        // plain decorative text rather than attached to the input itself.
+        // [\w.…] covers usernames with dots and either ellipsis style.
+        text = text.replace(/Reply to @?[\w.…]+/gi, ' ').replace(/\s+/g, ' ').trim();
+
         // Remove author from the start
         const authorEscaped = author.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&');
         text = text.replace(new RegExp(`^@?${authorEscaped}\\b`, 'i'), '').trim();
-        
-        // Clean leading dots/timestamps (e.g. "· 2h", "• 1d")
-        text = text.replace(/^[^a-zA-Z0-9]+/, '').trim();
+
+        // Clean leading dots/timestamps (e.g. "· 2h", "• 1d"). Uses Unicode
+        // letter/number classes (not [a-zA-Z0-9]) so posts in non-Latin
+        // scripts (Cyrillic, Arabic, CJK, ...) don't have their entire text
+        // treated as "leading symbols" and stripped away.
+        text = text.replace(/^[^\p{L}\p{N}]+/u, '').trim();
         text = text.replace(/^\d+[hdwmy]\b/i, '').trim();
-        text = text.replace(/^[^a-zA-Z0-9]+/, '').trim();
-        
-        if (text.length > 120) {
-          text = text.substring(0, 117) + '...';
+        text = text.replace(/^[^\p{L}\p{N}]+/u, '').trim();
+
+        // Strip the "Author" badge label Threads shows next to the
+        // original poster's own reply in a thread — it's a plain English
+        // UI label (not a button), so it isn't caught by the element
+        // removal above and would otherwise prefix the stored text.
+        text = text.replace(/^Author\b/i, '').trim();
+        text = text.replace(/^[^\p{L}\p{N}]+/u, '').trim();
+
+        // Truncate by Unicode code point, not UTF-16 code unit. Emoji (🔥,
+        // 💀, 😂, ...) are encoded as surrogate pairs; a raw .substring cut
+        // can land between the two halves and leave a lone, invalid
+        // surrogate that renders as a garbled/broken character.
+        const codePoints = Array.from(text);
+        if (codePoints.length > 120) {
+          text = codePoints.slice(0, 117).join('') + '...';
         }
       } catch (e) {
         console.error('Error parsing post text:', e);
       }
     }
-    
+
     if (!text) {
       text = '';
     }
-    
+
     return { url, author, text };
   }
 
@@ -412,9 +471,29 @@
     }
 
     const actionBars = candidates.filter(bar => {
+      // Exclude sidebar/header navigation — it can otherwise match the same
+      // "few grouped icon buttons" shape as a real post action bar. Threads
+      // renders no <nav>/<header>/role landmarks around its sidebar (it's
+      // all plain divs), so the real tell is that nav items are actual <a>
+      // links (Home, Search, ...), whereas every genuine post action
+      // (like/comment/repost/share) is always a div/button, never an anchor.
+      if (bar.closest('nav, [role="navigation"], header, [role="banner"]')) {
+        return false;
+      }
+      const hasNavAnchorIcon = Array.from(bar.querySelectorAll('a'))
+        .some(a => a.querySelector('svg'));
+      if (hasNavAnchorIcon) {
+        return false;
+      }
+
+      // Check SVG labels/titles in this bar to detect a reply/post composer's
+      // own toolbar (attach media, GIF, poll, voice, etc). Deliberately does
+      // NOT walk up the ancestor chain looking for nearby text inputs —
+      // Threads renders no <article> wrapper around posts, so a composer
+      // sitting right next to a post (e.g. the always-visible "Reply to X..."
+      // box) is close enough in the DOM that an ancestor-subtree search would
+      // intermittently misclassify the post's own action bar as a composer.
       let isReplyComposer = false;
-      
-      // Method 1: Check SVG labels/titles in this bar
       const svgElements = bar.querySelectorAll('svg');
       for (const svg of svgElements) {
         const label = svg.getAttribute('aria-label') || '';
@@ -422,27 +501,15 @@
         const title = titleEl ? titleEl.textContent : '';
         const combined = (label + ' ' + title).toLowerCase();
         if (
-          combined.includes('media') || 
-          combined.includes('gif') || 
-          combined.includes('composer') || 
-          combined.includes('poll') || 
+          combined.includes('media') ||
+          combined.includes('gif') ||
+          combined.includes('composer') ||
+          combined.includes('poll') ||
           combined.includes('voice') ||
           combined.includes('attach')
         ) {
           isReplyComposer = true;
           break;
-        }
-      }
-
-      // Method 2: Traverse up up to 5 levels to find text inputs
-      if (!isReplyComposer) {
-        let p = bar;
-        for (let i = 0; i < 5 && p; i++) {
-          if (p.querySelector('[contenteditable="true"], textarea, [role="textbox"], [placeholder], [aria-placeholder]')) {
-            isReplyComposer = true;
-            break;
-          }
-          p = p.parentElement;
         }
       }
 
