@@ -190,3 +190,9 @@
   opacity: 1;
   transform: translateY(-50%) translateX(0);
 }
+
+/* Pin Post Button specific styles */
+.threads-enhancer-btn[data-action-type="pin-post"].pinned {
+  color: #00c853;
+  opacity: 1;
+}
